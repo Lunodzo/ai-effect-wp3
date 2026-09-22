@@ -1,0 +1,12 @@
+{
+  "pipeline": {
+    "name": "AI Explainability Analysis",
+    "service_mapping": {
+      "explainability_runner": {
+        "ip_address": "explainability-runner",
+        "port": 8080
+      }
+    },
+    "connections": []
+  }
+}

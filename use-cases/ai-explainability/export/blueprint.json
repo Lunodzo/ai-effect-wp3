@@ -1,0 +1,27 @@
+{
+    "nodes": [
+        {
+            "proto_uri": "microservice/explainability_runner1.proto",
+            "image": "ai-explainability-explainability-runner:latest",
+            "node_type": "DataSource",
+            "container_name": "explainability_runner1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [],
+                    "operation_signature": {
+                        "operation_name": "Explain",
+                        "output_message_name": "ExplainResponse",
+                        "input_message_name": "ExplainRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        }
+    ],
+    "name": "Ai-Explainability",
+    "pipeline_id": "4dd8f475-c69b-49a5-b162-becc57b2d8d4",
+    "creation_date": "2026-09-21 00:41:51.348976",
+    "type": "pipeline-topology/v2",
+    "version": "2.0"
+}

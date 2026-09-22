@@ -1,0 +1,65 @@
+{
+  "id": "ai-explainability",
+  "title": "AI Explainability Analysis",
+  "description": "Upload a model and dataset or use files mounted in the pipeline assets directory, then run a SHAP analysis.",
+  "submit_label": "Run analysis",
+  "poll_interval_ms": 3000,
+  "theme": {
+    "accent": "#176a83",
+    "accent_strong": "#0f4f63",
+    "background": "linear-gradient(135deg, #edf7f8 0%, #f8f7ee 55%, #ffffff 100%)"
+  },
+  "inputs": [
+    {
+      "name": "model_upload",
+      "label": "Model file",
+      "type": "file",
+      "config_field": "model_path",
+      "upload_category": "models",
+      "accept": ".pkl,.pickle,.joblib,.pt,.pth,.bin",
+      "help": "Optional; replaces model_path."
+    },
+    {
+      "name": "dataset_upload",
+      "label": "Dataset file",
+      "type": "file",
+      "config_field": "dataset_path",
+      "upload_category": "data",
+      "accept": ".csv,.tsv,.parquet,.pt,.pth,.bin",
+      "help": "Optional; replaces dataset_path."
+    },
+    {
+      "name": "background_data_upload",
+      "label": "LSTM background data",
+      "type": "file",
+      "config_field": "background_data_path",
+      "upload_category": "data",
+      "accept": ".pt,.pth,.bin",
+      "help": "Optional LSTM tensor: (samples, look_back, features)."
+    },
+    {
+      "name": "test_data_upload",
+      "label": "LSTM test data",
+      "type": "file",
+      "config_field": "test_data_path",
+      "upload_category": "data",
+      "accept": ".pt,.pth,.bin",
+      "help": "Optional for LSTM analysis. The tensor must have shape (samples, look_back, features)."
+    },
+    {
+      "name": "config_json",
+      "label": "Analysis configuration",
+      "type": "textarea",
+      "required": true,
+      "help": "Paths update after upload; or use assets-relative paths.",
+      "default": "{\n  \"analysis\": \"tabular\",\n  \"model_type\": \"random_forest\",\n  \"model_path\": \"models/energy_model.joblib\",\n  \"dataset_path\": \"data/energy_data.csv\",\n  \"feature_names\": [\"voltage\", \"current\"]\n}"
+    }
+  ],
+  "output": {
+    "title": "Analysis results",
+    "summary_fields": ["summary", "status", "message"],
+    "image_collection_field": "drawings",
+    "image_signature_field": "signature"
+  },
+  "actions": []
+}

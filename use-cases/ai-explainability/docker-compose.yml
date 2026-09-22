@@ -1,0 +1,46 @@
+name: ai-explainability
+
+services:
+  explainability-runner:
+    build:
+      context: .
+      dockerfile: services/explainability_runner/Dockerfile
+    container_name: ai-explainability-runner
+    ports:
+      - "18201:8080"
+    environment:
+      - DATA_DIR=/data
+      - ASSETS_DIR=/assets
+    volumes:
+      - explainability-data:/data
+      - ./assets:/assets:ro
+    networks:
+      - ai-effect-services
+    restart: unless-stopped
+
+  web-ui:
+    build:
+      context: .
+      dockerfile: web_ui/Dockerfile
+    container_name: ai-explainability-web-ui
+    ports:
+      - "18204:8080"
+    environment:
+      - DATA_DIR=/data
+      - ORCHESTRATOR_URL=http://host.docker.internal:18000
+      - USE_CASE_DIR=/workspace/use-cases/ai-explainability
+    volumes:
+      - explainability-data:/data
+      - .:/workspace/use-cases/ai-explainability:ro
+    networks:
+      - ai-effect-services
+    restart: unless-stopped
+
+volumes:
+  explainability-data:
+    name: ai-explainability-data
+
+networks:
+  ai-effect-services:
+    name: ai-effect-services
+    external: true
