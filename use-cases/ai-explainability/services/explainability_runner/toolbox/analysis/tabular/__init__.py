@@ -5,18 +5,11 @@
 # and a neural run never pays for anything it doesn't need.
 
 from importlib import import_module
+from ai_explainability.capabilities import MODEL_ROUTES
 
 
 # model_type -> (module path, class attribute). Resolved lazily.
-_MODEL_ROUTES = {
-    # Tree-based
-    "random_forest": ("analysis.tabular.tree_based", "RFExplainer"),
-    "xgboost": ("analysis.tabular.tree_based", "RFExplainer"),
-    # Feedforward neural nets (PyTorch / TensorFlow)
-    "feedforward": ("analysis.tabular.neural", "FeedForwardExplainer"),
-    "mlp": ("analysis.tabular.neural", "FeedForwardExplainer"),
-    "neural_net": ("analysis.tabular.neural", "FeedForwardExplainer"),
-}
+_MODEL_ROUTES = MODEL_ROUTES["tabular"]
 
 
 def _load_explainer_class(model_type):

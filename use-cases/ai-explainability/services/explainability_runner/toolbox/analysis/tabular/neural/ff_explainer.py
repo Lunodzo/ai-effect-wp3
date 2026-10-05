@@ -21,13 +21,14 @@ import numpy as np
 import shap
 
 from ..tree_based.base import ExplainerBase
+from ai_explainability.capabilities import NEURAL_EXPLAINERS
 
 
 class FeedForwardExplainer(ExplainerBase):
     """SHAP explainer for feedforward / MLP networks (PyTorch or TensorFlow)."""
 
     #: SHAP backends this explainer knows how to build.
-    SUPPORTED_EXPLAINERS = ("kernel", "deep", "gradient")
+    SUPPORTED_EXPLAINERS = NEURAL_EXPLAINERS
 
     # ------------------------------------------------------------------ #
     # Setup                                                              #

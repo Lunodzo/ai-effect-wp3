@@ -5,14 +5,15 @@
 # ``run_timeseries_analysis``, based on ``config["model_type"]``.
 
 from importlib import import_module
+from ai_explainability.capabilities import MODEL_ROUTES
 
 
 def _load_explainer_class(model_type: str):
-    if model_type == "lstm":
-        return import_module("analysis.timeseries.lstm_pytorch").LSTMExplainer
-    if model_type == "arima":
-        return import_module("analysis.timeseries.arima_stats").ARIMAExplainer
-    return None
+    route = MODEL_ROUTES["timeseries"].get(model_type)
+    if route is None:
+        return None
+    module_path, attr = route
+    return getattr(import_module(module_path), attr)
 
 
 def run_timeseries_analysis(

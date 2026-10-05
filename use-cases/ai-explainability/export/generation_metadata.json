@@ -4,6 +4,11 @@
     "source_path": "../../use-cases/ai-explainability",
     "services": [
         {
+            "service_name": "explainability-config-assistant",
+            "container_name": "config_assistant1",
+            "image_name": "ai-explainability-explainability-config-assistant:latest"
+        },
+        {
             "service_name": "explainability-runner",
             "container_name": "explainability_runner1",
             "image_name": "ai-explainability-explainability-runner:latest"

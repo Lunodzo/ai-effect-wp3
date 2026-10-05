@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import html
 import json
+import logging
 import os
 import time
 import uuid
@@ -21,6 +22,13 @@ from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
 ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://host.docker.internal:18000")
+CONFIG_ASSISTANT_URL = os.environ.get(
+    "CONFIG_ASSISTANT_URL", "http://explainability-config-assistant:8080/assistant/configure"
+)
+DATA_INSPECTION_URL = os.environ.get(
+    "DATA_INSPECTION_URL", "http://explainability-runner:8080/setup/inspect"
+)
+logger = logging.getLogger(__name__)
 USE_CASE_DIR = Path(os.environ.get("USE_CASE_DIR", "/workspace/use-cases/denmark-node"))
 EXPORT_PATH = Path(os.environ.get("EXPORT_PATH", str(USE_CASE_DIR / "export")))
 UI_MANIFEST_PATH = Path(os.environ.get("UI_MANIFEST_PATH", str(USE_CASE_DIR / "ui.json")))
@@ -39,6 +47,10 @@ class SubmitRequest(BaseModel):
     inputs: dict[str, Any]
 
 
+class AssistantRequest(BaseModel):
+    messages: list[dict[str, str]]
+
+
 class DecisionRequest(BaseModel):
     workflow_id: str
     action: str
@@ -51,6 +63,10 @@ class WorkflowStatusResponse(BaseModel):
     outputs: list[dict[str, Any]] | None = None
     tasks: list[dict[str, Any]] | None = None
     error: str | None = None
+
+
+class InspectUploadRequest(BaseModel):
+    path: str
 
 
 def _read_json(path: Path, missing_message: str) -> dict[str, Any]:
@@ -249,6 +265,43 @@ def ui_config() -> dict[str, Any]:
     return _load_manifest()
 
 
+@app.post("/assistant/configure")
+def configure_analysis(payload: AssistantRequest) -> dict[str, Any]:
+    try:
+        response = requests.post(
+            CONFIG_ASSISTANT_URL,
+            json=payload.model_dump(),
+            timeout=200,
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The setup assistant is unavailable. Try again or continue to manual setup.",
+        ) from exc
+
+    try:
+        result = response.json()
+    except requests.exceptions.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The setup assistant returned an invalid response.",
+        ) from exc
+
+    if not response.ok:
+        detail = result.get("detail") if isinstance(result, dict) else None
+        raise HTTPException(
+            status_code=response.status_code if response.status_code < 500 else 502,
+            detail=detail or "The setup assistant could not process this request.",
+        )
+    if not isinstance(result, dict) or result.get("status") not in {
+        "ready",
+        "clarification",
+        "unsupported",
+    }:
+        raise HTTPException(status_code=502, detail="The setup assistant returned an invalid response.")
+    return result
+
+
 @app.post("/uploads")
 async def upload_file(
     file: UploadFile = File(...),
@@ -280,6 +333,28 @@ async def upload_file(
         await file.close()
 
     return {"path": str(destination), "filename": filename, "size": bytes_written}
+
+
+@app.post("/uploads/inspect")
+def inspect_upload(payload: InspectUploadRequest) -> dict[str, Any]:
+    path = Path(payload.path).resolve()
+    if UPLOAD_DIR.resolve() not in path.parents or not path.is_file():
+        raise HTTPException(status_code=422, detail="Inspection requires an uploaded data file.")
+    try:
+        response = requests.post(DATA_INSPECTION_URL, json={"path": str(path)}, timeout=30)
+        result = response.json()
+    except (requests.RequestException, requests.exceptions.JSONDecodeError) as exc:
+        logger.warning("Upload inspection is unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="The file is uploaded, but feature detection is unavailable. Review feature_names manually or retry.",
+        ) from exc
+    if not response.ok:
+        detail = result.get("detail") if isinstance(result, dict) else None
+        raise HTTPException(status_code=422, detail=detail or "Could not inspect this data file.")
+    if not isinstance(result, dict) or result.get("kind") not in {"table", "tensor", "unavailable"}:
+        raise HTTPException(status_code=502, detail="Data inspection returned an invalid response.")
+    return result
 
 
 @app.post("/submit")

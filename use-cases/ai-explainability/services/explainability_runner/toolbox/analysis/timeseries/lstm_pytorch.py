@@ -8,6 +8,7 @@ import shap
 import torch
 
 from .base import TimeseriesExplainerBase
+from ai_explainability.capabilities import LSTM_EXPLAINERS
 
 
 class LSTMForecaster(torch.nn.Module):
@@ -39,7 +40,7 @@ class LSTMExplainer(TimeseriesExplainerBase):
     """
 
     #: Explainer types this class knows how to build.
-    SUPPORTED_EXPLAINERS = ("gradient", "deep")
+    SUPPORTED_EXPLAINERS = LSTM_EXPLAINERS
 
     def __init__(self, config, *, model=None, background_data=None, test_data=None):
         super().__init__(
@@ -211,7 +212,9 @@ class LSTMExplainer(TimeseriesExplainerBase):
             predictions=dict(getattr(self, "all_predictions", {})),
             raw_data=None,  # 3D — not naturally a DataFrame
             raw_data_values=self.raw_data_values,
-            feature_names=list(self.config.get("feature_names", [])),
+            feature_names=list(self.config.get("feature_names") or [
+                f"f{index}" for index in range(self.raw_data_values.shape[-1])
+            ]),
             analysis="timeseries",
             model_type=self.config.get("model_type", "lstm"),
         )
@@ -247,17 +250,27 @@ class LSTMExplainer(TimeseriesExplainerBase):
             )
         os.makedirs(output_dir, exist_ok=True)
 
-        if hasattr(self.shap_values, "values"):
-            shap_array = self.shap_values.values
-        else:
-            shap_array = (
-                self.shap_values[0]
-                if isinstance(self.shap_values, list)
-                else self.shap_values
+        shap_array = np.asarray(self.all_shap_values[0])
+        data_array = np.asarray(self.raw_data_values)
+        if data_array.ndim != 3 or shap_array.shape != data_array.shape:
+            raise ValueError(
+                "LSTM Excel export requires matching 3D data and SHAP arrays "
+                "(samples, look_back, features)."
             )
-
-        look_back = self.config["look_back"]
-        features = self.config["feature_names"]
+        _, look_back, feature_count = data_array.shape
+        configured_look_back = self.config.get("look_back")
+        if configured_look_back is not None and configured_look_back != look_back:
+            raise ValueError(
+                f"Configured look_back={configured_look_back} does not match "
+                f"the tensor's {look_back} time steps."
+            )
+        features = self.config.get("feature_names") or [
+            f"f{index}" for index in range(feature_count)
+        ]
+        if len(features) != feature_count:
+            raise ValueError(
+                f"feature_names must contain {feature_count} names to match the LSTM tensor."
+            )
 
         flat_cols_shap = [
             f"SHAP_{feat}_t-{look_back - 1 - i}"

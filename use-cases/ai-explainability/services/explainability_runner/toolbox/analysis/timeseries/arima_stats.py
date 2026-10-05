@@ -1,4 +1,5 @@
 import os
+from io import StringIO
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,7 +34,7 @@ class ARIMAExplainer(TimeseriesExplainerBase):
 
         # Extract the coefficient table as a DataFrame
         results_as_html = summary.tables[1].as_html()
-        self.stats_df = pd.read_html(results_as_html, header=0, index_col=0)[0]
+        self.stats_df = pd.read_html(StringIO(results_as_html), header=0, index_col=0)[0]
 
         # Separate AR/MA terms from Exogenous features (the user-named ones)
         self.exog_importance = self.stats_df.loc[
